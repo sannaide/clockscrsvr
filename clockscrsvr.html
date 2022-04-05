@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="it">
+
+<head>
+  <meta charset="utf-8">
+  <title>Clock screen saver</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style type="text/css">
+    html, body {
+        margin: 0px;
+        padding: 0px;
+		width: 100%;
+		height: 100%;
+        background-color: black;
+        overflow: hidden;
+		cursor: url(data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7), auto;
+    }
+    /*#bkgnd {
+      position: absolute;
+      left: 0px;
+      top: 0px;
+	  z-index: 1000;
+	  display: none;
+	  background-color: black;
+    }*/
+    #clock {
+      position: absolute;
+      left: 0px;
+      top: 0px;
+	  display: none;
+	  z-index: 1001;
+    }
+	
+    h1 { padding:0px; margin:0px; font-size:10vw; }
+    .text-white { color: white; }
+	
+	.dummy {
+	}
+	
+  </style>
+  <script src="js/jquery-3.3.1.slim.min.js"></script>
+  <script type="text/javascript">
+
+	var window_w = 0;
+	var window_h = 0;
+	var start_clock_x = 0;
+	var start_clock_y = 0;
+	var end_clock_x = 0;
+	var end_clock_y = 0;
+	var distance = 0;
+	var anim_speed = 90; // pixel/secondo
+	var total_anim_time = 0;
+	var move_to = '';
+	var moving = false;
+	var id_interval = 0;
+	var id_interval1 = 0;
+	var id_timeout = 0;
+	var id_timeout1 = 0;
+	var coord_max = 10;
+	var xy_array_top = new Array(coord_max + 1);
+	var xy_array_right = new Array(coord_max + 1);
+	var xy_array_bottom = new Array(coord_max + 1);
+	var xy_array_left = new Array(coord_max + 1);
+	var xy_array_trbl = [xy_array_top,xy_array_right,xy_array_bottom,xy_array_left];
+	var idx_array_trbl = 0;
+	var random_startidx_coords = 0;
+	var random_endidx_coords = 0;
+	
+	function initCoordArrays() {
+	
+		// calcola le cooordinate per muoversi sulla
+		// cornice dello schermo in senso orario
+		
+		var delta_x = window_w / coord_max;
+		var delta_y = window_h / coord_max;
+		var start_x = 0, start_y = 0;
+		var cur_x = 0, cur_y = 0;
+		
+		// array coordinate left-right (top)
+		start_x = start_y = 0, cur_x = 0;
+		for(var i = 0;i < coord_max + 1;i++) {
+			xy_array_top[i] = { x:cur_x, y:start_y };
+			cur_x += delta_x;
+		}
+		// array coordinate top-bottom (right)
+		start_x = xy_array_top[xy_array_top.length - 1].x;
+		start_y = 0, cur_y = 0;
+		for(var i = 0;i < coord_max + 1;i++) {
+			xy_array_right[i] = { x:start_x, y:cur_y };
+			cur_y += delta_y;
+		}
+		// array coordinate right-left (bottom)
+		start_x = 0;
+		start_y = xy_array_right[xy_array_right.length - 1].y, cur_x = start_x;
+		for(var i = 0;i < coord_max + 1;i++) {
+			xy_array_bottom[i] = { x:cur_x, y:start_y };
+			cur_x += delta_x;
+		}
+		// array coordinate bottom-top (left)
+		start_x = 0;
+		start_y = 0, cur_y = 0;
+		for(var i = 0;i < coord_max + 1;i++) {
+			xy_array_left[i] = { x:start_x, y:cur_y };
+			cur_y += delta_y;
+		}
+	}
+
+	function getRandomInt(min, max) {
+		min = Math.ceil(min);
+		max = Math.floor(max);
+		return Math.floor(Math.random() * (max - min + 1)) + min;
+	}
+	  
+	function moveClock() {
+		start_clock_x = xy_array_trbl[idx_array_trbl][random_startidx_coords].x;
+		start_clock_y = xy_array_trbl[idx_array_trbl][random_startidx_coords].y;
+		if(++idx_array_trbl > 3) idx_array_trbl = 0;
+		random_endidx_coords = getRandomInt((coord_max / 2) - 2,(coord_max / 2) + 2);
+		end_clock_x = xy_array_trbl[idx_array_trbl][random_endidx_coords].x;
+		end_clock_y = xy_array_trbl[idx_array_trbl][random_endidx_coords].y;
+		
+		distance = parseInt(Math.sqrt(Math.pow(xy_array_trbl[idx_array_trbl][random_endidx_coords].x - start_clock_x,2) +
+			Math.pow(xy_array_trbl[idx_array_trbl][random_endidx_coords].y - start_clock_y,2)));
+		total_anim_time = distance / anim_speed;
+		
+		$('#clock').css({
+			'-webkit-transition'	: 'all ' + total_anim_time + 's linear',
+			'-moz-transition'		: 'all ' + total_anim_time + 's linear',
+			'-o-transition'			: 'all ' + total_anim_time + 's linear',
+			'transition'			: 'all ' + total_anim_time + 's linear'
+		});
+		
+		$('#clock').css({left:end_clock_x + 'px',top:end_clock_y + 'px'});
+		
+		console.log('end_clock_x: ' + end_clock_x + ', end_clock_y: ' + end_clock_y);
+	}
+	
+	function initMove() {
+	
+		window_w = 0;
+		window_h = 0;
+		start_clock_x = 0;
+		start_clock_y = 0;
+		end_clock_x = 0;
+		end_clock_y = 0;
+		distance = 0;
+		total_anim_time = 0;
+		move_to = '';
+		moving = false;
+		id_interval = 0;
+		id_interval1 = 0;
+		id_timeout = 0;
+		idx_array_trbl = 0;
+		random_startidx_coords = 0;
+		random_endidx_coords = 0;
+	
+		window_w = $(window).width() - $('#clock').width();
+		window_h = $(window).height() - $('#clock').height();
+
+		// init coordinate lati della cornice
+		initCoordArrays();
+		
+		// come coord. partenza e destinazione mi mantengo
+		// ad un intorno del centro del lato della cornice
+		random_startidx_coords = getRandomInt((coord_max / 2) - 2,(coord_max / 2) + 2);
+		
+		$('#clock h1').html(new Date().toLocaleTimeString());
+
+		// primo posizionamento (vedi timeout più sotto)
+		$('#clock').css({left:xy_array_trbl[idx_array_trbl][random_startidx_coords].x + 'px',
+			top:xy_array_trbl[idx_array_trbl][random_startidx_coords].y + 'px'});
+		$('#clock').css({display:'block'});
+		
+		clearInterval(id_interval1);
+		id_interval1 = setInterval(function() {
+			var d = new Date();
+			var n = d.toLocaleTimeString(); 
+			$('#clock h1').html(n);
+		},1000);
+
+		// necessario per dare tempo al primo posizionamento
+		clearTimeout(id_timeout);
+		id_timeout = setTimeout(function() {
+		
+			$('#clock').off('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend');
+			$('#clock').on('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend',
+				function(e) {
+					if(e.originalEvent.propertyName != 'top') return;
+					
+					random_startidx_coords = random_endidx_coords;
+					moveClock();
+			});
+		
+			moveClock();
+			
+		},100);
+	}
+    
+      $(document).ready(function() {
+	  
+		initMove();
+		
+		/*clearInterval(id_interval);
+		id_interval = setInterval(function() {
+			var d = new Date();
+			var n = d.toLocaleTimeString(); 
+			$('#clock h1').html(n);
+		},1000);
+
+		// necessario per dare tempo al primo posizionamento
+		clearTimeout(id_timeout);
+		id_timeout = setTimeout(function() {
+		
+			$('#clock').on('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend',
+				function(e) {
+					if(e.originalEvent.propertyName != 'top') return;
+					
+					random_startidx_coords = random_endidx_coords;
+					moveClock();
+			});
+		
+			moveClock();
+			
+		},100);*/
+	  
+		/*window_w = $(window).width() - $('#clock').width();
+		window_h = $(window).height() - $('#clock').height();
+
+		// init coordinate lati della cornice
+		initCoordArrays();
+		
+		// come coord. partenza e destinazione mi mantengo
+		// ad un intorno del centro del lato della cornice
+		random_startidx_coords = getRandomInt((coord_max / 2) - 2,(coord_max / 2) + 2);
+		
+		$('#clock h1').html(new Date().toLocaleTimeString());
+
+		// primo posizionamento (vedi timeout più sotto)
+		$('#clock').css({left:xy_array_trbl[idx_array_trbl][random_startidx_coords].x + 'px',
+			top:xy_array_trbl[idx_array_trbl][random_startidx_coords].y + 'px'});
+		$('#clock').css({display:'block'});
+		
+		id_interval1 = setInterval(function() {
+			var d = new Date();
+			var n = d.toLocaleTimeString(); 
+			$('#clock h1').html(n);
+		},1000);
+
+		// necessario per dare tempo al primo posizionamento
+		setTimeout(function() {
+		
+			$('#clock').on('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend',
+				function(e) {
+					if(e.originalEvent.propertyName != 'top') return;
+					
+					random_startidx_coords = random_endidx_coords;
+					moveClock();
+			});
+		
+			moveClock();
+			
+		},100);*/
+		
+		$(window).resize(function() {
+			clearTimeout(id_timeout1);
+			id_timeout1 = setTimeout(function() {
+					$('#clock').css({
+					'-webkit-transition'	: '',
+					'-moz-transition'		: '',
+					'-o-transition'			: '',
+					'transition'			: ''
+				});
+				initMove();
+			},100);
+		});
+
+      });
+  </script>
+
+</head>
+
+<body>
+
+  <!--<div style="position:absolute; left:400px; top:400px; border:1px solid white; width:10px; height:10px">&nbsp;></div>-->
+
+  <div class="dummy" id="clock"><h1 class="text-white">00:00:00</h1></div>
+</body>
+
+</html>
